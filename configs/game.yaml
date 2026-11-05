@@ -1,0 +1,9 @@
+# Experiment choices only; printed card properties and fixed rules belong in Python.
+version: V0
+cards: [copper, silver, gold, estate, duchy, province]
+num_players: 2
+# Reuse an integer seed for reproducibility; null requests fresh randomness.
+seed: 0
+# Total individual player turns across both players, not rounds or purchases.
+# Reaching the cap will truncate a game without declaring a winner.
+max_turns: 200

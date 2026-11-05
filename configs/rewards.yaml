@@ -1,0 +1,11 @@
+# Reward settings; training and the controlled comparison remain future work.
+mode: terminal_only  # Switch to potential_based for the shaped condition.
+gamma: 0.99         # Must match the learner's discount per purchasing decision.
+shaping_strength: 1.0  # beta; ignored (effectively zero) in terminal_only mode.
+vp_normalization: 48.0 # C in Phi = (public agent VP - public opponent VP) / C.
+win_reward: 1.0
+tie_reward: 0.0
+loss_reward: -1.0
+# Apply the official turn-count tiebreak before assigning a terminal outcome.
+# At normal termination Phi must be zero. At a turn-limit truncation retain the
+# nonterminal observation/potential, bootstrap, and assign no outcome reward.
