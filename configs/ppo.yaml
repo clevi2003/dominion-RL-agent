@@ -1,0 +1,17 @@
+# MaskablePPO kwargs; one CPU environment, one step per purchasing decision.
+# Keep gamma equal to configs/rewards.yaml (0.99 or 1.0). --gamma overrides both.
+# Policy-facing input units; rewards/metrics always use raw observations.
+observation_scaling: raw
+learning_rate: 0.0003
+n_steps: 256
+batch_size: 64
+n_epochs: 10
+gamma: 0.99
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.0
+vf_coef: 0.5
+max_grad_norm: 0.5
+policy_kwargs:
+  net_arch: [64, 64]
+  activation_fn: tanh  # tanh or relu; resolved to a PyTorch class by train_ppo.

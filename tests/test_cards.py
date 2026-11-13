@@ -40,7 +40,7 @@ def test_basic_definitions(card_id, card_class, name, cost, value, category):
 
 def test_registry_ids_and_shared_definitions():
     assert tuple(CARD_REGISTRY) == (
-        "copper", "silver", "gold", "estate", "duchy", "province",
+        "copper", "silver", "gold", "estate", "duchy", "province", "village", "council_room", "festival", "militia", "moat",
     )
     hand = ["copper", "copper"]
     assert CARD_REGISTRY[hand[0]] is CARD_REGISTRY[hand[1]]

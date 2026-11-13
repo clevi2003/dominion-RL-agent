@@ -7,29 +7,32 @@ from typing import Any, Literal
 
 import yaml
 
-from dominion_rl.game.cards import CARD_REGISTRY, CardId
+from dominion_rl.game.cards import CardId, card_ids_for_version
 
 
 @dataclass(frozen=True)
 class GameConfig:
-    """V0 experiment settings; fixed card properties and rules stay in Python.
+    """Versioned experiment settings; fixed card properties and rules stay in Python.
 
     max_turns counts total individual player turns, not rounds or purchases.
     A seed of None requests fresh randomness; an integer requests repeatable setup.
     The engine owns and uses a local RNG rather than global RNG state.
     """
 
-    version: Literal["V0"] = "V0"
-    cards: tuple[CardId, ...] = tuple(CARD_REGISTRY)
+    version: Literal["V0", "V1", "V2", "V3"] = "V0"
+    cards: tuple[CardId, ...] | None = None
     num_players: int = 2
     seed: int | None = 0
     max_turns: int = 200
 
     def __post_init__(self) -> None:
-        if self.version != "V0" or self.num_players != 2:
-            raise ValueError("Only two-player V0 configuration is supported")
-        if len(self.cards) != 6 or set(self.cards) != set(CARD_REGISTRY):
-            raise ValueError("V0 requires each of the six basic card IDs exactly once")
+        if self.num_players != 2:
+            raise ValueError("Only two-player configuration is supported")
+        expected = card_ids_for_version(self.version)
+        if self.cards is None:
+            object.__setattr__(self, "cards", expected)
+        if len(self.cards) != len(expected) or set(self.cards) != set(expected):
+            raise ValueError(f"{self.version} requires each configured card ID exactly once: {expected}")
         if self.seed is not None and (type(self.seed) is not int or self.seed < 0):
             raise ValueError("seed must be a nonnegative integer or null")
         if type(self.max_turns) is not int or self.max_turns <= 0:
@@ -42,7 +45,8 @@ class RewardConfig:
 
     shaping_strength applies only in potential_based mode. Shaping uses
     beta * (gamma * Phi(next) - Phi(current)), with Phi = public VP difference
-    / vp_normalization. gamma must match the learner's per-purchase discount.
+    / vp_normalization, optionally plus a relative hypothetical-hand P8 term.
+    gamma must match the learner's per-purchase discount.
     """
 
     mode: Literal["terminal_only", "potential_based"] = "terminal_only"
@@ -52,18 +56,29 @@ class RewardConfig:
     win_reward: float = 1.0
     tie_reward: float = 0.0
     loss_reward: float = -1.0
+    # Defaults preserve legacy VP shaping when these fields are absent in YAML.
+    potential: Literal["vp", "vp_economy"] = "vp"
+    economy_coefficient: float = 0.25
+    # Separate from reward mode/potential. Missing on old YAML/archives means win_loss.
+    terminal_objective: Literal["win_loss", "vp_margin"] = "win_loss"
 
     def __post_init__(self) -> None:
         if self.mode not in ("terminal_only", "potential_based"):
             raise ValueError("Unknown reward mode")
+        if self.terminal_objective not in ("win_loss", "vp_margin"):
+            raise ValueError("terminal_objective must be win_loss or vp_margin")
+        if self.potential not in ("vp", "vp_economy"):
+            raise ValueError("potential must be vp or vp_economy")
         numeric = (
             self.gamma, self.shaping_strength, self.vp_normalization,
-            self.win_reward, self.tie_reward, self.loss_reward,
+            self.win_reward, self.tie_reward, self.loss_reward, self.economy_coefficient,
         )
         if any(type(value) not in (int, float) or not isfinite(value) for value in numeric):
             raise ValueError("Reward parameters must be finite numbers")
         if not 0 <= self.gamma <= 1:
             raise ValueError("gamma must be between 0 and 1")
+        if self.economy_coefficient < 0:
+            raise ValueError("economy_coefficient must be nonnegative")
         if self.shaping_strength < 0 or self.vp_normalization <= 0:
             raise ValueError("shaping_strength must be >= 0 and vp_normalization > 0")
 
@@ -77,7 +92,7 @@ def _load_mapping(path: str | Path) -> dict[str, Any]:
 
 
 def load_game_config(path: str | Path) -> GameConfig:
-    """Read a game YAML file, rejecting invalid cards and unsupported settings."""
+    """Read a game YAML file, rejecting invalid version/card combinations."""
     data = _load_mapping(path)
     if "cards" in data:
         if not isinstance(data["cards"], list) or any(

@@ -41,10 +41,10 @@ class VictoryCard(Card):
 
 @dataclass(frozen=True, slots=True)
 class ActionCard(Card):
-    """Base for future concrete Actions with their own play(game, player) effects.
-
-    Introduce that method with the engine and first Action implementations.
-    A future Moat can add a reaction method without another inheritance layer.
-    """
+    """Concrete Actions implement printed effects; the engine moves/spends first."""
 
     card_types: ClassVar[frozenset[str]] = frozenset({"action"})
+
+
+    def play(self, game: "DominionGame", player: "PlayerState") -> None:
+        raise NotImplementedError("Use a concrete Action card")

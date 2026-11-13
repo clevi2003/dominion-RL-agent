@@ -1,0 +1,16 @@
+# Action checkpoints require these policy settings and terminal VP margin rewards.
+# Reward settings come from action_reward(): gamma=1, no shaping, margin/48.
+observation_scaling: raw
+learning_rate: 0.0003
+n_steps: 256
+batch_size: 64
+n_epochs: 10
+gamma: 1.0
+gae_lambda: 0.95
+clip_range: 0.2
+ent_coef: 0.0
+vf_coef: 0.5
+max_grad_norm: 0.5
+policy_kwargs:
+  net_arch: [64, 64]
+  activation_fn: tanh

@@ -1,0 +1,6 @@
+# V2: preserve V1 IDs/features; append Festival. Actions: Village -> Festival -> Council Room.
+version: V2
+cards: [copper, silver, gold, estate, duchy, province, village, council_room, festival]
+num_players: 2
+seed: 0
+max_turns: 200
