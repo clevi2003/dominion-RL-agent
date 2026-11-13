@@ -52,8 +52,11 @@ class GameState:
     truncated: bool = False
     end_reason: EndReason | None = None
     winner: int | None = None
+    version: Literal["V0", "V1", "V2", "V3"] = "V0"
 
     def __post_init__(self) -> None:
+        if self.version not in ("V0", "V1", "V2", "V3"):
+            raise ValueError("Game version must be V0, V1, V2 or V3")
         if len(self.players) != 2:
             raise ValueError("GameState requires exactly two players")
         if self.current_player not in (0, 1):

@@ -66,13 +66,14 @@ def test_true_terminal_zero_potential_even_with_nonzero_final_vp_difference():
     assert reward == pytest.approx(1 - 6 / 48)
 
 
-def test_truncation_keeps_final_nonterminal_potential_and_no_outcome():
-    config = RewardConfig(mode="potential_based")
+@pytest.mark.parametrize("gamma", [0.99, 1.0])
+def test_truncation_keeps_final_nonterminal_potential_and_no_outcome(gamma):
+    config = RewardConfig(mode="potential_based", gamma=gamma)
     reward = calculate_reward(
         observation(3, 9), observation(3, 15), config,
         terminated=False, truncated=True, winner=None,
     )
-    assert reward == pytest.approx(0.99 * (-12 / 48) - (-6 / 48))
+    assert reward == pytest.approx(gamma * (-12 / 48) - (-6 / 48))
 
 
 def test_zero_beta_equals_terminal_only_and_shaping_does_not_mutate_observations():
@@ -88,12 +89,29 @@ def test_zero_beta_equals_terminal_only_and_shaping_does_not_mutate_observations
     np.testing.assert_array_equal(after, old_after)
 
 
-def test_discounted_shaping_telescopes_at_terminal_endpoint():
-    config = RewardConfig(mode="potential_based", gamma=0.8, shaping_strength=2)
+@pytest.mark.parametrize("gamma", [0.8, 0.99, 1.0])
+@pytest.mark.parametrize("terminated", [False, True])
+def test_discounted_shaping_telescopes_at_both_endpoints(gamma, terminated):
+    config = RewardConfig(mode="potential_based", gamma=gamma, shaping_strength=2)
     observations = [observation(9, 3), observation(10, 3), observation(10, 6), observation(20, 6)]
     shaped = [calculate_reward(
         observations[index], observations[index + 1], config,
-        terminated=index == 2, truncated=False, winner=0 if index == 2 else None,
+        terminated=terminated and index == 2, truncated=not terminated and index == 2,
+        winner=0 if terminated and index == 2 else None,
     ) for index in range(3)]
     discounted = sum(config.gamma**index * reward for index, reward in enumerate(shaped))
-    assert discounted == pytest.approx(config.gamma**2 - 2 * (6 / 48))
+    terminal_return = gamma**2 if terminated else 0
+    residual = 0 if terminated else 2 * gamma**3 * (14 / 48)
+    assert discounted == pytest.approx(terminal_return - 2 * (6 / 48) + residual)
+
+
+@pytest.mark.parametrize("gamma", [0.99, 1.0])
+def test_extra_zero_reward_decision_delays_a_loss_only_with_discounting(gamma):
+    config = RewardConfig(gamma=gamma)
+    loss = terminal_reward(1, config, terminated=True, truncated=False)
+    earlier = sum(gamma**i * r for i, r in enumerate([0, loss]))
+    delayed = sum(gamma**i * r for i, r in enumerate([0, 0, loss]))
+    if gamma < 1:
+        assert delayed > earlier
+    else:
+        assert delayed == earlier == -1

@@ -1,0 +1,6 @@
+# V3: append Militia/Moat; purchasing decisions only, automatic Actions/reactions/discards.
+version: V3
+cards: [copper, silver, gold, estate, duchy, province, village, council_room, festival, militia, moat]
+num_players: 2
+seed: 0
+max_turns: 200

@@ -1,0 +1,6 @@
+# First V1 milestone: purchasing control, automatic Village-first Action phase.
+version: V1
+cards: [copper, silver, gold, estate, duchy, province, village, council_room]
+num_players: 2
+seed: 0
+max_turns: 200
